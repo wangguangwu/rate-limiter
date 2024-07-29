@@ -9,6 +9,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
+ * 该控制器实现了基于 Resilience4j 的限流功能。
+ * 当请求过于频繁时，调用回退方法返回提示信息。
+ *
  * @author wangguangwu
  */
 @RestController

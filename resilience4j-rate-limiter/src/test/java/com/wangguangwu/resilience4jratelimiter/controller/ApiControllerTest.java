@@ -18,6 +18,11 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
+ * 并发单元测试
+ * <p>
+ * 该测试用例验证了限流功能在并发场景下的表现。
+ * 它模拟多个并发请求并检查限流器的行为。
+ *
  * @author wangguangwu
  */
 @SpringBootTest
@@ -66,20 +71,20 @@ public class ApiControllerTest {
         // 所有任务同时开始
         startLatch.countDown();
 
-        // 等待任务结束
+        // 等待所有任务结束
         endLatch.await();
 
         System.out.println("Success Count: " + successCount.get());
         System.out.println("Fail Count: " + failCount.get());
 
-        // Assert that rate limiter is working correctly
+        // 验证限流器是否正常工作
         assertTrue(successCount.get() <= 3, "Success count should be less than or equal to 3");
         assertTrue(failCount.get() >= 7, "Fail count should be greater than or equal to 7");
 
         // 等待限流结束
         TimeUnit.SECONDS.sleep(10);
 
-        // Next request should succeed after refresh period
+        // 刷新周期后下一次请求应该成功
         mockMvc.perform(get("/api/rateLimit"))
                 .andExpect(status().isOk());
     }
