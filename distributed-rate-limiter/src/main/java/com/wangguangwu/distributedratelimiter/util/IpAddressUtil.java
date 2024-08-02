@@ -4,26 +4,32 @@ import com.wangguangwu.distributedratelimiter.context.RequestContext;
 import jakarta.servlet.http.HttpServletRequest;
 
 /**
- * 获取客户端 IP 地址的工具方法。
- * 通过分析请求头中的多个可能的 IP 地址字段，尝试获取真实的客户端 IP。
+ * 获取客户端 IP 地址的工具类。
+ * <p>
+ * 该工具类通过分析 HTTP 请求头中的多个字段，尝试获取客户端的真实 IP 地址。
+ * </p>
  *
  * @author wangguangwu
  */
-public class IpAddressUtil {
+public final class IpAddressUtil {
 
     private static final String UNKNOWN = "unknown";
 
+    // 私有化构造函数，防止实例化工具类
+    private IpAddressUtil() {
+    }
+
     /**
-     * 获取客户端 IP 地址。
+     * 获取客户端的 IP 地址。
      * <p>
      * 该方法通过检查多个常见的 HTTP 请求头字段，尝试获取客户端的真实 IP 地址。
      * 如果所有的字段都无法提供有效的 IP 地址，则返回请求的远程地址。
      * </p>
      *
-     * @return 客户端的 IP 地址
+     * @return 客户端的 IP 地址，如果无法获取有效的 IP 地址则返回 null
      */
     public static String getIpAddress() {
-        // 获取当前 HTTP 请求
+        // 从 ThreadLocal 中获取当前 HTTP 请求对象
         HttpServletRequest request = RequestContext.getRequest();
 
         // 尝试从 "x-forwarded-for" 头字段中获取 IP 地址

@@ -14,5 +14,7 @@ else
     -- 使用一个事务来保证原子性
     redis.call("INCRBY", key, "1")
     redis.call("EXPIRE", key, expire_time)
+    -- 如果需要调整时间单位为 ms
+    -- redis.call("PEXPIRE", key, expire_time)
     return 1
 end

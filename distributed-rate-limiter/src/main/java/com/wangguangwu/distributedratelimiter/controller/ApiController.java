@@ -1,6 +1,6 @@
 package com.wangguangwu.distributedratelimiter.controller;
 
-import com.wangguangwu.distributedratelimiter.annotation.MyRateLimiter;
+import com.wangguangwu.distributedratelimiter.annotation.DistributedRateLimiter;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class ApiController {
 
     @GetMapping("/action")
-    @MyRateLimiter(key = "action")
+    @DistributedRateLimiter(key = "action")
     public String action() {
         return "success";
     }
