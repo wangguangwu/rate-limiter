@@ -1,8 +1,7 @@
 package com.wangguangwu.guavaratelimiter.aspect;
 
-import com.wangguangwu.guavaratelimiter.annotation.MyRateLimiter;
+import com.wangguangwu.guavaratelimiter.annotation.GuavaRateLimiter;
 import com.wangguangwu.guavaratelimiter.component.RateLimiterComponent;
-import com.wangguangwu.guavaratelimiter.context.ResponseContext;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
@@ -11,9 +10,12 @@ import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Pointcut;
 import org.springframework.stereotype.Component;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.Objects;
 
 /**
  * 实现自定义限流注解的切面。
@@ -24,30 +26,30 @@ import java.io.PrintWriter;
  *
  * @author wangguangwu
  * @see RateLimiterComponent
- * @see MyRateLimiter
+ * @see GuavaRateLimiter
  */
 @Aspect
 @Component
 @Slf4j
-public class MyRateLimiterAspect {
+public class GuavaRateLimiterAspect {
 
     @Resource
     private RateLimiterComponent rateLimiterComponent;
 
-    @Pointcut("@annotation(myRateLimiter)")
-    public void pointcut(MyRateLimiter myRateLimiter) {
+    @Pointcut("@annotation(guavaRateLimiter)")
+    public void pointcut(GuavaRateLimiter guavaRateLimiter) {
     }
 
-    @Around(value = "pointcut(myRateLimiter)", argNames = "joinPoint,myRateLimiter")
-    public Object around(ProceedingJoinPoint joinPoint, MyRateLimiter myRateLimiter) throws Throwable {
+    @Around(value = "pointcut(guavaRateLimiter)", argNames = "joinPoint,guavaRateLimiter")
+    public Object around(ProceedingJoinPoint joinPoint, GuavaRateLimiter guavaRateLimiter) throws Throwable {
         // 获取类名称 + 方法名称
         String className = joinPoint.getSignature().getDeclaringTypeName();
         String methodName = joinPoint.getSignature().getName();
         String key = className + "." + methodName;
 
         // 获取速率和时间要求
-        double rate = myRateLimiter.rate();
-        int timeout = myRateLimiter.timeout();
+        double rate = guavaRateLimiter.rate();
+        int timeout = guavaRateLimiter.timeout();
 
         // 判断客户端获取令牌是否超时
         boolean tryAcquire = rateLimiterComponent.tryAcquire(key, rate, timeout);
@@ -66,7 +68,8 @@ public class MyRateLimiterAspect {
      * 降级处理
      */
     public void fallback() {
-        HttpServletResponse response = ResponseContext.getResponse();
+        HttpServletResponse response = ((ServletRequestAttributes)
+                Objects.requireNonNull(RequestContextHolder.getRequestAttributes())).getResponse();
         if (response != null) {
             response.setHeader("Content-type", "text/html;charset=UTF-8");
             try (PrintWriter writer = response.getWriter()) {

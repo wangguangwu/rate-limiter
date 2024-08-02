@@ -13,7 +13,7 @@ import java.lang.annotation.*;
 @Target({ElementType.METHOD, ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
-public @interface MyRateLimiter {
+public @interface GuavaRateLimiter {
 
     /**
      * 每秒的请求数
