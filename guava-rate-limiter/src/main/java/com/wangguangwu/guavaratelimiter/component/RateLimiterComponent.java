@@ -15,10 +15,11 @@ import java.util.concurrent.TimeUnit;
  */
 @Component
 @Slf4j
+@SuppressWarnings("all")
 public class RateLimiterComponent {
 
     /**
-     * 为每一个接口创建自己的rateLimiter。
+     * 为每一个接口创建自己的 rateLimiter。
      * <p>
      * 避免并发问题。
      */
