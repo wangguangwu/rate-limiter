@@ -14,14 +14,15 @@ import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Pointcut;
 import org.springframework.core.io.ClassPathResource;
-import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.scripting.support.ResourceScriptSource;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.ArrayList;
+import java.io.Serializable;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -32,19 +33,17 @@ import java.util.List;
 @Slf4j
 public class MyRateLimitAspect {
 
-    private static final String UNKNOWN = "unknown";
     private static final String LIMIT_LUA_PATH = "limit.lua";
 
     @Resource
-    private StringRedisTemplate stringRedisTemplate;
+    private RedisTemplate<String, Serializable> limitRedisTemplate;
 
-    private DefaultRedisScript<Integer> redisScript;
+    private DefaultRedisScript<Long> redisScript;
 
     @PostConstruct
     public void init() {
         redisScript = new DefaultRedisScript<>();
-        ;
-        redisScript.setResultType(Integer.class);
+        redisScript.setResultType(Long.class);
         redisScript.setScriptSource(new ResourceScriptSource(new ClassPathResource(LIMIT_LUA_PATH)));
     }
 
@@ -60,25 +59,25 @@ public class MyRateLimitAspect {
 
         // 获取对应的key
         String key = getKey(myRateLimiter.key(), myRateLimiter.limitType());
-        List<String> keys = new ArrayList<>();
-        keys.add(StringUtils.join(myRateLimiter.prefix(), key));
+        String redisKey = StringUtils.join(myRateLimiter.prefix(), key);
+
+        List<String> keys = Collections.singletonList(redisKey);
+
         try {
-            Integer count = stringRedisTemplate.execute(redisScript, keys, limitCount, limitPeriod);
-            log.info("key[{}]第[{}]次尝试获取令牌", key, count);
-            if (count != null && count <= limitCount) {
+            Long result = limitRedisTemplate.execute(redisScript, keys, limitCount, limitPeriod);
+
+            if (Boolean.TRUE.equals(result != null && result == 1)) {
                 // 获取到令牌，直接执行
                 log.info("获取令牌成功，请求执行");
                 return joinPoint.proceed();
             } else {
-                // 服务降级
+                // 服务降级处理
                 fallback();
                 return null;
             }
         } catch (Throwable e) {
-            if (e instanceof RuntimeException) {
-                throw new RuntimeException(e.getLocalizedMessage());
-            }
-            throw new RuntimeException("服务器出现异常，请稍后再试");
+            log.error("限流发生异常: {}", e.getMessage(), e);
+            throw new RuntimeException("服务器出现异常，请稍后再试", e);
         }
     }
 

@@ -34,7 +34,7 @@ public @interface MyRateLimiter {
     /**
      * 一定时间内最多访问的次数
      */
-    int count();
+    int count() default 3;
 
     /**
      * 限流的维度(用户自定义key 或者 调用方ip)
