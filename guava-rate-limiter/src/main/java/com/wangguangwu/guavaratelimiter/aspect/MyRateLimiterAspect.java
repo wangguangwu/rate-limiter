@@ -2,6 +2,7 @@ package com.wangguangwu.guavaratelimiter.aspect;
 
 import com.wangguangwu.guavaratelimiter.annotation.MyRateLimiter;
 import com.wangguangwu.guavaratelimiter.component.RateLimiterComponent;
+import com.wangguangwu.guavaratelimiter.context.ResponseContext;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
@@ -42,32 +43,38 @@ public class MyRateLimiterAspect {
 
     @Around(value = "pointcut(myRateLimiter)", argNames = "joinPoint,myRateLimiter")
     public Object around(ProceedingJoinPoint joinPoint, MyRateLimiter myRateLimiter) throws Throwable {
-        //
-        String className = joinPoint.getSignature().getDeclaringTypeName();
-        String methodName = joinPoint.getSignature().getName();
-        String key = className + "." + methodName;
+        try {
+            // 获取类名称 + 方法名称
+            String className = joinPoint.getSignature().getDeclaringTypeName();
+            String methodName = joinPoint.getSignature().getName();
+            String key = className + "." + methodName;
 
-        // 获取速率和时间要求
-        double rate = myRateLimiter.rate();
-        int timeout = myRateLimiter.timeout();
+            // 获取速率和时间要求
+            double rate = myRateLimiter.rate();
+            int timeout = myRateLimiter.timeout();
 
-        // 判断客户端获取令牌是否超时
-        boolean tryAcquire = rateLimiterComponent.tryAcquire(key, rate, timeout);
-        if (!tryAcquire) {
-            // 服务降级
-            return fullback();
+            // 判断客户端获取令牌是否超时
+            boolean tryAcquire = rateLimiterComponent.tryAcquire(key, rate, timeout);
+            if (!tryAcquire) {
+                // 服务降级
+                fullback();
+                return null;
+            }
+
+            // 获取到令牌，直接执行
+            log.info("获取令牌成功，请求执行");
+            return joinPoint.proceed();
+        } finally {
+            // 确保清理 ThreadLocal 避免内存泄漏
+            ResponseContext.removeResponse();
         }
-
-        // 获取到令牌，直接执行
-        log.info("获取令牌成功，请求执行");
-        return joinPoint.proceed();
     }
 
     /**
      * 降级处理
      */
-    public Object fullback() {
-        HttpServletResponse response = ((ServletRequestAttributes) Objects.requireNonNull(RequestContextHolder.getRequestAttributes())).getResponse();
+    public void fullback() {
+        HttpServletResponse response = ResponseContext.getResponseHolder();
         if (response != null) {
             response.setHeader("Content-type", "text/html;charset=UTF-8");
             try (PrintWriter writer = response.getWriter()) {
@@ -78,6 +85,5 @@ public class MyRateLimiterAspect {
                 log.error("服务降级: {}", e.getMessage(), e);
             }
         }
-        return null;
     }
 }
