@@ -1,7 +1,6 @@
 package com.wangguangwu.distributedratelimiter.annotation;
 
 import com.wangguangwu.distributedratelimiter.enums.LimitType;
-
 import java.lang.annotation.*;
 
 /**
